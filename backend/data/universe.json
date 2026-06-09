@@ -1,0 +1,17 @@
+{
+  "_note": "BuildTech v1.0 universe placeholder. Expand stocks list to full S&P 500 + NASDAQ 100 (~600) and etfs to ~30 major ETFs for production use. Keys starting with _ are ignored by the loader.",
+  "_version": "placeholder",
+  "stocks": [
+    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+    "META", "TSLA", "BRK-B", "JPM", "JNJ",
+    "XOM", "UNH", "V", "MA", "HD",
+    "PG", "AVGO", "MRK", "COST", "CVX",
+    "LLY", "PEP", "KO", "ABBV", "WMT",
+    "TMO", "BAC", "CRM", "ORCL", "ACN"
+  ],
+  "etfs": [
+    "SPY", "QQQ", "VTI", "AGG", "GLD",
+    "IWM", "EFA", "VNQ", "LQD", "TLT",
+    "XLK", "XLF", "XLE", "VYM", "BND"
+  ]
+}
