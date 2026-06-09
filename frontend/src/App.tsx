@@ -18,8 +18,8 @@ import { Settings } from "./pages/Settings/Settings";
 
 function PageLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <p className="text-sm text-gray-400">Loading…</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+      <p style={{ fontSize: 13, color: "var(--muted)" }}>Loading…</p>
     </div>
   );
 }

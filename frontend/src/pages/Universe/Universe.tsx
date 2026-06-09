@@ -8,6 +8,7 @@ import {
   getWatchlist,
   removeFromWatchlist,
 } from "../../api/client";
+import { ErrorCard, LoadingBlock } from "../../components/StateCards";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -21,60 +22,66 @@ const SOURCE_LABELS: Record<string, string> = {
   mixed: "Mixed",
 };
 
-const SOURCE_ICONS: Record<string, string> = {
-  fundamentals: "📈",
-  prices: "📊",
-  mixed: "📈📊",
-};
-
 // ---------------------------------------------------------------------------
-// Sub-components
+// Shared badge helpers
 // ---------------------------------------------------------------------------
 
 function ScoreBadge({ value }: { value: number | null }) {
   if (value == null) {
     return (
-      <span className="inline-block rounded px-2 py-0.5 text-xs font-mono bg-gray-100 text-gray-400">
-        N/A
-      </span>
+      <span style={{
+        display: "inline-block", padding: "2px 8px", borderRadius: 6,
+        border: "1px solid var(--border-strong)", background: "var(--elevated-2)",
+        color: "var(--muted-2)", fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600,
+      }}>N/A</span>
     );
   }
-  const color =
+  const [bg, border, color] =
     value >= 70
-      ? "bg-green-100 text-green-700"
+      ? ["var(--pos-soft)", "rgba(16,185,129,0.3)", "#6ee7b7"]
       : value >= 45
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-red-100 text-red-700";
+      ? ["var(--warn-soft)", "rgba(245,158,11,0.3)", "#fcd34d"]
+      : ["var(--neg-soft)", "rgba(239,68,68,0.3)", "#fca5a5"];
   return (
-    <span className={`inline-block rounded px-2 py-0.5 text-xs font-mono font-semibold ${color}`}>
+    <span style={{
+      display: "inline-block", padding: "2px 8px", borderRadius: 6,
+      border: `1px solid ${border}`, background: bg, color,
+      fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600,
+    }}>
       {value.toFixed(1)}
     </span>
   );
 }
 
 function AssetClassBadge({ value }: { value: string | null }) {
-  if (!value) return <span className="text-gray-400 text-xs">—</span>;
-  const color =
+  if (!value) return <span style={{ color: "var(--muted-2)", fontSize: 12 }}>—</span>;
+  const [bg, border, color] =
     value === "stock"
-      ? "bg-blue-50 text-blue-600 border-blue-200"
-      : "bg-purple-50 text-purple-600 border-purple-200";
+      ? ["var(--indigo-soft)", "rgba(99,102,241,0.3)", "#a5b4fc"]
+      : ["var(--cyan-soft)", "rgba(6,182,212,0.3)", "#67e8f9"];
   return (
-    <span className={`inline-block rounded border px-2 py-0.5 text-xs font-medium ${color}`}>
+    <span style={{
+      display: "inline-block", padding: "2px 8px", borderRadius: 6,
+      border: `1px solid ${border}`, background: bg, color, fontSize: 11, fontWeight: 600,
+    }}>
       {value.toUpperCase()}
     </span>
   );
 }
 
 function FreshnessCell({ value, label }: { value: string | null; label: string }) {
-  if (!value) return <span className="text-gray-400 text-xs">—</span>;
-  // Only show date part
+  if (!value) return <span style={{ color: "var(--muted-2)", fontSize: 12 }}>—</span>;
   const display = value.split("T")[0] ?? value;
   return (
-    <span className="text-xs text-gray-500" title={`${label}: ${value}`}>
+    <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-mono)" }} title={`${label}: ${value}`}>
       {display}
     </span>
   );
 }
+
+// ---------------------------------------------------------------------------
+// FactorRow — expandable sub-factor row
+// ---------------------------------------------------------------------------
 
 function FactorRow({ factor }: { factor: FactorEntry }) {
   const [open, setOpen] = useState(false);
@@ -83,31 +90,33 @@ function FactorRow({ factor }: { factor: FactorEntry }) {
   return (
     <>
       <tr
-        className={[
-          "border-b border-gray-100",
-          factor.is_na ? "opacity-60" : "",
-          hasSubFactors ? "cursor-pointer hover:bg-gray-50" : "",
-        ].join(" ")}
+        style={{
+          borderBottom: "1px solid var(--border-faint)",
+          opacity: factor.is_na ? 0.6 : 1,
+          cursor: hasSubFactors ? "pointer" : "default",
+          transition: "background 0.1s",
+        }}
         onClick={() => hasSubFactors && setOpen((o) => !o)}
+        onMouseEnter={(e) => { if (hasSubFactors) e.currentTarget.style.background = "var(--elevated)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
       >
-        <td className="py-2 pr-3 text-sm font-mono text-gray-800">
+        <td style={{ padding: "8px 12px", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>
           {factor.name}
           {hasSubFactors && (
-            <span className="ml-1 text-gray-400 text-xs">
+            <span style={{ marginLeft: 6, color: "var(--muted-2)", fontSize: 10 }}>
               {open ? "▲" : "▼"}
             </span>
           )}
         </td>
-        <td className="py-2 pr-3 text-xs text-gray-500">
-          {SOURCE_ICONS[factor.source] ?? ""}{" "}
+        <td style={{ padding: "8px 12px", fontSize: 11, color: "var(--muted)" }}>
           {SOURCE_LABELS[factor.source] ?? factor.source}
         </td>
-        <td className="py-2 pr-3 text-xs text-gray-500 tabular-nums">
+        <td style={{ padding: "8px 12px", fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
           {(factor.effective_weight * 100).toFixed(1)}%
         </td>
-        <td className="py-2">
+        <td style={{ padding: "8px 12px" }}>
           {factor.is_na ? (
-            <span className="text-xs text-amber-600 italic">
+            <span style={{ fontSize: 11, color: "var(--warn)", fontStyle: "italic" }}>
               N/A — {factor.na_reason ?? "missing data"}
             </span>
           ) : (
@@ -116,30 +125,30 @@ function FactorRow({ factor }: { factor: FactorEntry }) {
         </td>
       </tr>
       {open && hasSubFactors && (
-        <tr className="bg-gray-50 border-b border-gray-100">
-          <td colSpan={4} className="px-4 py-2">
-            <table className="w-full text-xs">
+        <tr style={{ background: "var(--elevated)" }}>
+          <td colSpan={4} style={{ padding: "8px 16px" }}>
+            <table style={{ width: "100%", fontSize: 11 }}>
               <thead>
-                <tr className="text-gray-400">
-                  <th className="text-left pr-3 pb-1 font-medium">Sub-factor</th>
-                  <th className="text-left pr-3 pb-1 font-medium">Raw</th>
-                  <th className="text-left pb-1 font-medium">Score</th>
+                <tr style={{ color: "var(--muted-2)" }}>
+                  <th style={{ textAlign: "left", paddingRight: 12, paddingBottom: 4, fontWeight: 500 }}>Sub-factor</th>
+                  <th style={{ textAlign: "left", paddingRight: 12, paddingBottom: 4, fontWeight: 500 }}>Raw</th>
+                  <th style={{ textAlign: "left", paddingBottom: 4, fontWeight: 500 }}>Score</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(factor.sub_factors).map(([subName, sub]) => (
-                  <tr key={subName} className={sub.is_na ? "opacity-60" : ""}>
-                    <td className="pr-3 py-0.5 font-mono text-gray-700">{subName}</td>
-                    <td className="pr-3 py-0.5 text-gray-500">
+                  <tr key={subName} style={{ opacity: sub.is_na ? 0.6 : 1 }}>
+                    <td style={{ paddingRight: 12, paddingBottom: 3, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{subName}</td>
+                    <td style={{ paddingRight: 12, paddingBottom: 3, color: "var(--muted)" }}>
                       {sub.raw != null ? String(sub.raw) : "—"}
                     </td>
-                    <td className="py-0.5">
+                    <td style={{ paddingBottom: 3 }}>
                       {sub.is_na ? (
-                        <span className="text-amber-500 italic">
+                        <span style={{ color: "var(--warn)", fontStyle: "italic" }}>
                           N/A — {sub.na_reason ?? "missing"}
                         </span>
                       ) : (
-                        <span className="font-mono">
+                        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>
                           {sub.score != null ? sub.score.toFixed(1) : "—"}
                         </span>
                       )}
@@ -155,30 +164,29 @@ function FactorRow({ factor }: { factor: FactorEntry }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// WatchlistButton
+// ---------------------------------------------------------------------------
+
 function WatchlistButton({
-  ticker,
-  inWatchlist,
-  busy,
-  onAdd,
-  onRemove,
+  ticker, inWatchlist, busy, onAdd, onRemove,
 }: {
-  ticker: string;
-  inWatchlist: boolean;
-  busy: boolean;
-  onAdd: (ticker: string) => void;
-  onRemove: (ticker: string) => void;
+  ticker: string; inWatchlist: boolean; busy: boolean;
+  onAdd: (ticker: string) => void; onRemove: (ticker: string) => void;
 }) {
   if (busy) {
-    return (
-      <span className="text-xs text-gray-400 tabular-nums">…</span>
-    );
+    return <span style={{ fontSize: 11, color: "var(--muted-2)", fontFamily: "var(--font-mono)" }}>…</span>;
   }
   if (inWatchlist) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(ticker); }}
-        className="text-xs text-red-500 hover:text-red-700 transition-colors whitespace-nowrap"
         title="Remove from watchlist"
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          fontSize: 11, fontWeight: 600, color: "var(--neg)",
+          fontFamily: "var(--font-ui)", padding: "2px 4px", whiteSpace: "nowrap",
+        }}
       >
         ★ Remove
       </button>
@@ -187,41 +195,38 @@ function WatchlistButton({
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onAdd(ticker); }}
-      className="text-xs text-brand-600 hover:text-brand-800 transition-colors whitespace-nowrap"
       title="Add to watchlist"
+      style={{
+        background: "none", border: "none", cursor: "pointer",
+        fontSize: 11, fontWeight: 600, color: "var(--indigo)",
+        fontFamily: "var(--font-ui)", padding: "2px 4px", whiteSpace: "nowrap",
+      }}
     >
       + Watchlist
     </button>
   );
 }
 
+// ---------------------------------------------------------------------------
+// DetailDrawer
+// ---------------------------------------------------------------------------
+
 function DetailDrawer({
-  item,
-  onClose,
-  inWatchlist,
-  watchlistBusy,
-  onWatchlistAdd,
-  onWatchlistRemove,
+  item, onClose, inWatchlist, watchlistBusy, onWatchlistAdd, onWatchlistRemove,
 }: {
-  item: UniverseItem;
-  onClose: () => void;
-  inWatchlist: boolean;
-  watchlistBusy: boolean;
-  onWatchlistAdd: (ticker: string) => void;
-  onWatchlistRemove: (ticker: string) => void;
+  item: UniverseItem; onClose: () => void;
+  inWatchlist: boolean; watchlistBusy: boolean;
+  onWatchlistAdd: (ticker: string) => void; onWatchlistRemove: (ticker: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const bd = item.breakdown;
 
-  // Close on Escape
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Close on outside click
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
@@ -230,64 +235,78 @@ function DetailDrawer({
     return () => document.removeEventListener("mousedown", onClick);
   }, [onClose]);
 
-  const bd = item.breakdown;
-
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/20">
+    <div
+      className="fixed inset-0 z-40 flex justify-end"
+      style={{ background: "rgba(0,0,0,0.55)", animation: "fadeIn 0.16s ease" }}
+    >
       <div
         ref={ref}
-        className="w-full max-w-md bg-white shadow-xl flex flex-col overflow-hidden"
+        className="flex flex-col overflow-hidden"
+        style={{
+          width: "100%", maxWidth: 480,
+          background: "var(--surface)",
+          borderLeft: "1px solid var(--border-strong)",
+          boxShadow: "var(--shadow-drawer)",
+          animation: "slideInRight 0.22s cubic-bezier(.16,1,.3,1)",
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold font-mono text-gray-900">
+        <div style={{
+          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+          padding: "16px 18px", borderBottom: "1px solid var(--border)", flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--text)" }}>
               {item.ticker}
             </span>
             <AssetClassBadge value={item.asset_class} />
             {item.has_missing_factors && (
-              <span
-                className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5"
-                title="Some scoring factors have missing data"
-              >
+              <span style={{
+                fontSize: 11, color: "var(--warn)",
+                background: "var(--warn-soft)", border: "1px solid rgba(245,158,11,0.3)",
+                borderRadius: 6, padding: "2px 7px",
+              }}>
                 partial data
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <WatchlistButton
-              ticker={item.ticker}
-              inWatchlist={inWatchlist}
-              busy={watchlistBusy}
-              onAdd={onWatchlistAdd}
-              onRemove={onWatchlistRemove}
+              ticker={item.ticker} inWatchlist={inWatchlist} busy={watchlistBusy}
+              onAdd={onWatchlistAdd} onRemove={onWatchlistRemove}
             />
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-700 text-xl leading-none"
               aria-label="Close"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", fontSize: 20, lineHeight: 1, padding: 2 }}
             >
               ×
             </button>
           </div>
         </div>
 
-        {/* Score summary */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-4">
+        {/* Score summary bar */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 20,
+          padding: "12px 18px", borderBottom: "1px solid var(--border-faint)", flexShrink: 0,
+        }}>
           <div>
-            <div className="text-xs text-gray-400 mb-0.5">Composite score</div>
+            <p style={{ margin: 0, fontSize: 11, color: "var(--muted-2)", marginBottom: 3 }}>Composite score</p>
             <ScoreBadge value={item.score_value} />
           </div>
           {item.fundamentals_snapshot_date && (
             <div>
-              <div className="text-xs text-gray-400 mb-0.5">📈 Fundamentals</div>
-              <span className="text-xs text-gray-600">{item.fundamentals_snapshot_date}</span>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--muted-2)", marginBottom: 3 }}>Fundamentals</p>
+              <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
+                {item.fundamentals_snapshot_date}
+              </span>
             </div>
           )}
           {item.prices_computed_at && (
             <div>
-              <div className="text-xs text-gray-400 mb-0.5">📊 Prices</div>
-              <span className="text-xs text-gray-600">
+              <p style={{ margin: 0, fontSize: 11, color: "var(--muted-2)", marginBottom: 3 }}>Prices</p>
+              <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
                 {item.prices_computed_at.split("T")[0]}
               </span>
             </div>
@@ -295,33 +314,30 @@ function DetailDrawer({
         </div>
 
         {/* Factor breakdown */}
-        <div className="flex-1 overflow-auto px-5 py-4">
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
           {!bd ? (
-            <p className="text-sm text-gray-400 italic">
+            <p style={{ fontSize: 13, color: "var(--muted-2)", fontStyle: "italic" }}>
               No score breakdown available for this asset.
             </p>
           ) : (
             <>
-              <p className="text-xs text-gray-400 mb-3">
+              <p style={{ fontSize: 11.5, color: "var(--muted-2)", marginBottom: 12, lineHeight: 1.5 }}>
                 Score breakdown — click a factor row to expand sub-factors.
-                Sources: 📈 Fundamentals snapshot · 📊 Prices data.
                 This is an educational analysis output, not investment advice.
               </p>
-              <table className="w-full">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3">
-                      Factor
-                    </th>
-                    <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3">
-                      Source
-                    </th>
-                    <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3">
-                      Weight
-                    </th>
-                    <th className="text-left text-xs text-gray-400 font-medium pb-2">
-                      Score
-                    </th>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    {["Factor", "Source", "Weight", "Score"].map((h) => (
+                      <th key={h} style={{
+                        textAlign: "left", fontSize: 11, fontWeight: 600,
+                        letterSpacing: "0.04em", textTransform: "uppercase",
+                        color: "var(--muted-2)", padding: "8px 12px",
+                        borderBottom: "1px solid var(--border)",
+                      }}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -334,9 +350,12 @@ function DetailDrawer({
           )}
         </div>
 
-        {/* Disclaimer */}
-        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-          <p className="text-xs text-gray-400 leading-relaxed">
+        {/* Footer */}
+        <div style={{
+          padding: "12px 18px", borderTop: "1px solid var(--border-faint)",
+          background: "var(--elevated)", flexShrink: 0,
+        }}>
+          <p style={{ margin: 0, fontSize: 11, color: "var(--muted-2)", lineHeight: 1.5 }}>
             Score breakdown is a candidate input for educational analysis — not
             investment advice, a recommendation, or a signal.
           </p>
@@ -358,27 +377,19 @@ export function Universe() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters / sort
   const [search, setSearch] = useState("");
   const [assetClass, setAssetClass] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("score");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [offset, setOffset] = useState(0);
-
-  // Detail drawer
   const [selected, setSelected] = useState<UniverseItem | null>(null);
-
-  // Watchlist state
   const [watchlistTickers, setWatchlistTickers] = useState<Set<string>>(new Set());
   const [watchlistBusy, setWatchlistBusy] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getWatchlist().then((resp) => {
       setWatchlistTickers(new Set(resp.items.map((i) => i.ticker)));
-    }).catch(() => {
-      // Watchlist load failure is non-fatal — table still works
-    });
+    }).catch(() => {});
   }, []);
 
   async function handleWatchlistAdd(ticker: string) {
@@ -401,22 +412,19 @@ export function Universe() {
     }
   }
 
-  const load = useCallback(
-    async (params: UniverseParams) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const resp = await getUniverse(params);
-        setItems(resp.items);
-        setTotal(resp.total);
-      } catch {
-        setError("Failed to load scoring results. Is the backend running?");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const load = useCallback(async (params: UniverseParams) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await getUniverse(params);
+      setItems(resp.items);
+      setTotal(resp.total);
+    } catch {
+      setError("Failed to load scoring results. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void load({
@@ -440,36 +448,49 @@ export function Universe() {
   }
 
   function SortIcon({ field }: { field: SortBy }) {
-    if (sortBy !== field) return <span className="ml-1 text-gray-300">↕</span>;
-    return (
-      <span className="ml-1 text-brand-500">{sortDir === "asc" ? "↑" : "↓"}</span>
-    );
+    if (sortBy !== field) return <span style={{ marginLeft: 4, color: "var(--faint)" }}>↕</span>;
+    return <span style={{ marginLeft: 4, color: "var(--indigo)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
+  const INPUT_STYLE: React.CSSProperties = {
+    background: "var(--bg)", border: "1px solid var(--border-strong)",
+    borderRadius: "var(--radius-sm)", padding: "7px 10px",
+    color: "var(--text)", fontFamily: "var(--font-ui)", fontSize: 13,
+    outline: "none",
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Controls */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 bg-white flex-shrink-0">
+      {/* Controls bar */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "10px 16px", borderBottom: "1px solid var(--border)",
+        background: "var(--surface)", flexShrink: 0,
+      }}>
         <input
           type="text"
           placeholder="Search ticker…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
-          className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          style={{ ...INPUT_STYLE, width: 160 }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--indigo)"; e.target.style.boxShadow = "0 0 0 3px var(--indigo-soft)"; }}
+          onBlur={(e) => { e.target.style.borderColor = "var(--border-strong)"; e.target.style.boxShadow = "none"; }}
         />
         <select
           value={assetClass}
           onChange={(e) => { setAssetClass(e.target.value); setOffset(0); }}
-          className="border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          style={{ ...INPUT_STYLE, cursor: "pointer" }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--indigo)"; }}
+          onBlur={(e) => { e.target.style.borderColor = "var(--border-strong)"; }}
         >
           <option value="">All asset classes</option>
           <option value="stock">Stocks</option>
           <option value="etf">ETFs</option>
         </select>
-        <span className="text-xs text-gray-400 ml-auto">
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted-2)", fontFamily: "var(--font-mono)" }}>
           {loading ? "Loading…" : `${total} results`}
         </span>
       </div>
@@ -477,84 +498,124 @@ export function Universe() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {error ? (
-          <div className="p-8 text-sm text-red-600">{error}</div>
-        ) : !loading && items.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-sm text-gray-500 font-medium">No cached scores found.</p>
-            <p className="text-xs text-gray-400 mt-1">
+          <ErrorCard
+            title="Unable to load universe"
+            message={error}
+            onRetry={() =>
+              void load({
+                search: search || undefined,
+                asset_class: assetClass || undefined,
+                sort_by: sortBy,
+                sort_dir: sortDir,
+                limit: PAGE_SIZE,
+                offset,
+              })
+            }
+          />
+        ) : loading ? (
+          <LoadingBlock rows={10} />
+        ) : items.length === 0 ? (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", padding: "64px 24px", textAlign: "center",
+          }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: "var(--elevated)", border: "1px solid var(--border)",
+              display: "grid", placeItems: "center", marginBottom: 16,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="var(--muted-2)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </div>
+            <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 650, color: "var(--text)" }}>
+              No cached scores found
+            </h3>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0, maxWidth: 300 }}>
               Run the scoring process first to populate the Universe Explorer.
             </p>
           </div>
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-0 bg-white z-10 border-b border-gray-200">
-              <tr>
-                <th
-                  className="text-left px-6 py-2.5 text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-800 select-none whitespace-nowrap"
-                  onClick={() => handleSort("ticker")}
-                >
-                  Ticker <SortIcon field="ticker" />
-                </th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500 whitespace-nowrap">
-                  Class
-                </th>
-                <th
-                  className="text-left px-3 py-2.5 text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-800 select-none whitespace-nowrap"
-                  onClick={() => handleSort("score")}
-                >
-                  Score <SortIcon field="score" />
-                </th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500 whitespace-nowrap">
-                  Data
-                </th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500 whitespace-nowrap">
-                  📈 Fundamentals
-                </th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500 whitespace-nowrap">
-                  📊 Prices
-                </th>
-                <th className="px-3 py-2.5"></th>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                {[
+                  { label: "Ticker", field: "ticker" as SortBy, sortable: true },
+                  { label: "Class",  field: null,                sortable: false },
+                  { label: "Score",  field: "score" as SortBy,  sortable: true },
+                  { label: "Data",   field: null,                sortable: false },
+                  { label: "Fundamentals", field: null,          sortable: false },
+                  { label: "Prices", field: null,                sortable: false },
+                  { label: "",       field: null,                sortable: false },
+                ].map(({ label, field, sortable }) => (
+                  <th
+                    key={label}
+                    onClick={() => sortable && field && handleSort(field)}
+                    style={{
+                      position: "sticky", top: 0, zIndex: 5,
+                      background: "var(--surface)",
+                      textAlign: label === "" ? "right" : "left",
+                      padding: "9px 12px",
+                      fontSize: 11, fontWeight: 600, letterSpacing: "0.04em",
+                      textTransform: "uppercase", color: "var(--muted-2)",
+                      borderBottom: "1px solid var(--border)",
+                      whiteSpace: "nowrap",
+                      cursor: sortable ? "pointer" : "default",
+                      userSelect: "none",
+                    }}
+                    onMouseEnter={(e) => { if (sortable) (e.currentTarget as HTMLTableCellElement).style.color = "var(--muted)"; }}
+                    onMouseLeave={(e) => { if (sortable) (e.currentTarget as HTMLTableCellElement).style.color = "var(--muted-2)"; }}
+                  >
+                    {label}
+                    {sortable && field && <SortIcon field={field} />}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr
                   key={item.ticker}
-                  className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                  style={{
+                    borderBottom: "1px solid var(--border-faint)",
+                    cursor: "pointer",
+                    transition: "background 0.1s",
+                    background: selected?.ticker === item.ticker ? "var(--indigo-soft)" : "transparent",
+                  }}
                   onClick={() => setSelected(item)}
+                  onMouseEnter={(e) => {
+                    if (selected?.ticker !== item.ticker)
+                      e.currentTarget.style.background = "var(--elevated)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selected?.ticker !== item.ticker)
+                      e.currentTarget.style.background = "transparent";
+                  }}
                 >
-                  <td className="px-6 py-2.5 font-mono font-semibold text-gray-900">
+                  <td style={{ padding: "9px 12px", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text)" }}>
                     {item.ticker}
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td style={{ padding: "9px 12px" }}>
                     <AssetClassBadge value={item.asset_class} />
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td style={{ padding: "9px 12px" }}>
                     <ScoreBadge value={item.score_value} />
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td style={{ padding: "9px 12px" }}>
                     {item.has_missing_factors && (
-                      <span
-                        className="text-xs text-amber-600"
-                        title="Some scoring factors have missing data"
-                      >
+                      <span style={{ fontSize: 11, color: "var(--warn)" }} title="Some scoring factors have missing data">
                         ⚠ partial
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5">
-                    <FreshnessCell
-                      value={item.fundamentals_snapshot_date}
-                      label="Fundamentals snapshot"
-                    />
+                  <td style={{ padding: "9px 12px" }}>
+                    <FreshnessCell value={item.fundamentals_snapshot_date} label="Fundamentals snapshot" />
                   </td>
-                  <td className="px-3 py-2.5">
-                    <FreshnessCell
-                      value={item.prices_computed_at}
-                      label="Prices computed at"
-                    />
+                  <td style={{ padding: "9px 12px" }}>
+                    <FreshnessCell value={item.prices_computed_at} label="Prices computed at" />
                   </td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td style={{ padding: "9px 12px", textAlign: "right" }}>
                     <WatchlistButton
                       ticker={item.ticker}
                       inWatchlist={watchlistTickers.has(item.ticker)}
@@ -572,25 +633,38 @@ export function Universe() {
 
       {/* Pagination */}
       {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white flex-shrink-0">
-          <span className="text-xs text-gray-500">
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 16px", borderTop: "1px solid var(--border)",
+          background: "var(--surface)", flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
             Page {currentPage} of {totalPages} — {total} total
           </span>
-          <div className="flex gap-2">
-            <button
-              disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              className="px-3 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
-            >
-              Previous
-            </button>
-            <button
-              disabled={offset + PAGE_SIZE >= total}
-              onClick={() => setOffset(offset + PAGE_SIZE)}
-              className="px-3 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
-            >
-              Next
-            </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {[
+              { label: "Previous", disabled: offset === 0, onClick: () => setOffset(Math.max(0, offset - PAGE_SIZE)) },
+              { label: "Next", disabled: offset + PAGE_SIZE >= total, onClick: () => setOffset(offset + PAGE_SIZE) },
+            ].map(({ label, disabled, onClick }) => (
+              <button
+                key={label}
+                disabled={disabled}
+                onClick={onClick}
+                style={{
+                  padding: "5px 12px", fontSize: 12, fontFamily: "var(--font-ui)",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--elevated)", border: "1px solid var(--border-strong)",
+                  color: disabled ? "var(--faint)" : "var(--muted)",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  opacity: disabled ? 0.45 : 1,
+                  transition: "background 0.12s",
+                }}
+                onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = "var(--elevated-2)"; }}
+                onMouseLeave={(e) => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = "var(--elevated)"; }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}

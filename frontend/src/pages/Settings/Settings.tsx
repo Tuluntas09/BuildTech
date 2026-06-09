@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type UserProfile, getProfile, upsertProfile } from "../../api/client";
+import { LoadingBlock } from "../../components/StateCards";
 
 const RISK_NAMES: Record<number, string> = {
   1: "Citadel",
@@ -7,6 +8,14 @@ const RISK_NAMES: Record<number, string> = {
   3: "Compass",
   4: "Voyager",
   5: "Frontier",
+};
+
+const RISK_DESCRIPTIONS: Record<number, string> = {
+  1: "Capital preservation. Bond-heavy, minimal equity volatility.",
+  2: "Income and stability. Dividend tilt with defensive equities.",
+  3: "Balanced growth. Diversified core, moderate risk budget.",
+  4: "Long-horizon growth. Equity-led with quality-momentum tilt.",
+  5: "Maximum growth. Concentrated, high-beta, volatility-tolerant.",
 };
 
 export function Settings() {
@@ -43,76 +52,171 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div className="p-8 text-sm text-gray-400">Loading settings…</div>
+      <div style={{ padding: 32, maxWidth: 480 }}>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)", padding: "24px",
+        }}>
+          <LoadingBlock rows={4} padded={false} />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-lg">
-      <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
-
-      <div className="flex flex-col gap-6">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Name (optional)
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. My Portfolio"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
+    <div style={{ padding: 32, maxWidth: 480 }}>
+      {/* Card */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)",
+          padding: "24px",
+        }}
+      >
+        {/* Card header */}
+        <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 650, color: "var(--text)", letterSpacing: "-0.01em" }}>
+            Profile Settings
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted-2)" }}>
+            Adjust your risk level and display preferences.
+          </p>
         </div>
 
-        {/* Risk level */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Risk level
-          </label>
-          <input
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={riskLevel}
-            onChange={(e) => setRiskLevel(Number(e.target.value))}
-            className="w-full accent-brand-500"
-          />
-          <div className="flex justify-between mt-1">
-            {[1, 2, 3, 4, 5].map((lvl) => (
-              <button
-                key={lvl}
-                onClick={() => setRiskLevel(lvl)}
-                className={[
-                  "text-xs transition-colors",
-                  riskLevel === lvl
-                    ? "text-brand-600 font-semibold"
-                    : "text-gray-400",
-                ].join(" ")}
-              >
-                {RISK_NAMES[lvl]}
-              </button>
-            ))}
+        <div className="flex flex-col gap-6">
+          {/* Name */}
+          <div>
+            <label
+              style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 6 }}
+            >
+              Name (optional)
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. My Portfolio"
+              style={{
+                width: "100%",
+                background: "var(--bg)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: "var(--radius-sm)",
+                padding: "9px 12px",
+                color: "var(--text)",
+                fontFamily: "var(--font-ui)",
+                fontSize: 14,
+                outline: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "var(--indigo)";
+                e.target.style.boxShadow = "0 0 0 3px var(--indigo-soft)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "var(--border-strong)";
+                e.target.style.boxShadow = "none";
+              }}
+            />
           </div>
 
-          {profile?.suggested_risk_level &&
-            riskLevel !== profile.suggested_risk_level && (
-              <p className="mt-2 text-xs text-amber-600">
+          {/* Risk level */}
+          <div>
+            <label
+              style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 12 }}
+            >
+              Risk Level
+            </label>
+
+            {/* Current selection display */}
+            <div
+              style={{
+                background: "var(--elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                padding: "12px 14px",
+                marginBottom: 14,
+              }}
+            >
+              <div className="flex items-baseline gap-3">
+                <span style={{ fontSize: 20, fontWeight: 700, color: "var(--indigo)", letterSpacing: "-0.02em" }}>
+                  {RISK_NAMES[riskLevel]}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--muted-2)" }}>Level {riskLevel} of 5</span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--muted)" }}>
+                {RISK_DESCRIPTIONS[riskLevel]}
+              </p>
+            </div>
+
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={riskLevel}
+              onChange={(e) => setRiskLevel(Number(e.target.value))}
+            />
+
+            <div className="flex justify-between mt-2">
+              {[1, 2, 3, 4, 5].map((lvl) => (
+                <button
+                  key={lvl}
+                  onClick={() => setRiskLevel(lvl)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 11.5,
+                    fontFamily: "var(--font-ui)",
+                    fontWeight: riskLevel === lvl ? 600 : 400,
+                    color: riskLevel === lvl ? "var(--indigo)" : "var(--muted-2)",
+                    padding: 0,
+                    transition: "color 0.12s",
+                  }}
+                >
+                  {RISK_NAMES[lvl]}
+                </button>
+              ))}
+            </div>
+
+            {profile?.suggested_risk_level && riskLevel !== profile.suggested_risk_level && (
+              <p style={{ marginTop: 10, fontSize: 11.5, color: "var(--warn)" }}>
                 Questionnaire suggested {RISK_NAMES[profile.suggested_risk_level]}{" "}
                 (Level {profile.suggested_risk_level}).
               </p>
             )}
-        </div>
+          </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="self-start px-6 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition-colors disabled:opacity-60"
-        >
-          {saving ? "Saving…" : saved ? "Saved" : "Save Changes"}
-        </button>
+          {/* Save button */}
+          <div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 7,
+                padding: "8px 20px",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--indigo)",
+                background: saved
+                  ? "var(--pos)"
+                  : "var(--indigo)",
+                color: "#fff",
+                fontFamily: "var(--font-ui)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.6 : 1,
+                transition: "background 0.15s, opacity 0.15s",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 14px -4px var(--indigo-glow)",
+              }}
+            >
+              {saving ? "Saving…" : saved ? "Saved" : "Save Changes"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

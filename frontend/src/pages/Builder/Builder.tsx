@@ -9,6 +9,7 @@ import {
   getProfile,
   savePortfolio,
 } from "../../api/client";
+import { LoadingBlock } from "../../components/StateCards";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -35,14 +36,19 @@ const RISK_NAMES: Record<number, string> = {
 function WeightBar({ weight }: { weight: number }) {
   const pct = Math.round(weight * 100 * 10) / 10;
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-brand-500 rounded-full"
-          style={{ width: `${Math.min(pct * 5, 100)}%` }}
-        />
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{
+        width: 96, height: 5, borderRadius: 3,
+        background: "var(--elevated-2)", overflow: "hidden",
+      }}>
+        <div style={{
+          height: "100%", borderRadius: 3,
+          background: "var(--indigo)",
+          width: `${Math.min(pct * 5, 100)}%`,
+          transition: "width 0.4s cubic-bezier(.16,1,.3,1)",
+        }} />
       </div>
-      <span className="text-xs font-mono text-gray-700 tabular-nums">
+      <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-2)", tabularNums: true } as React.CSSProperties}>
         {pct.toFixed(1)}%
       </span>
     </div>
@@ -51,53 +57,75 @@ function WeightBar({ weight }: { weight: number }) {
 
 function ScorePill({ value }: { value: number | null }) {
   if (value == null)
-    return <span className="text-xs text-gray-400 font-mono">—</span>;
-  const color =
-    value >= 70
-      ? "text-green-700 bg-green-50"
-      : value >= 45
-      ? "text-yellow-700 bg-yellow-50"
-      : "text-red-700 bg-red-50";
+    return <span style={{ fontSize: 12, color: "var(--muted-2)", fontFamily: "var(--font-mono)" }}>—</span>;
+  const [bg, color] =
+    value >= 70 ? ["var(--pos-soft)", "#6ee7b7"]
+    : value >= 45 ? ["var(--warn-soft)", "#fcd34d"]
+    : ["var(--neg-soft)", "#fca5a5"];
   return (
-    <span className={`text-xs font-mono font-semibold rounded px-1.5 py-0.5 ${color}`}>
+    <span style={{
+      fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600,
+      borderRadius: 6, padding: "2px 7px",
+      background: bg, color,
+    }}>
       {value.toFixed(1)}
+    </span>
+  );
+}
+
+function AssetClassChip({ cls }: { cls: string }) {
+  const [bg, border, color] =
+    cls === "stock"
+      ? ["var(--indigo-soft)", "rgba(99,102,241,0.3)", "#a5b4fc"]
+      : ["var(--cyan-soft)", "rgba(6,182,212,0.3)", "#67e8f9"];
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 6,
+      border: `1px solid ${border}`, background: bg, color,
+    }}>
+      {cls.toUpperCase()}
     </span>
   );
 }
 
 function HoldingsTable({ holdings }: { holdings: BuilderHolding[] }) {
   if (holdings.length === 0)
-    return <p className="text-xs text-gray-400 italic">No holdings.</p>;
+    return <p style={{ fontSize: 12, color: "var(--muted-2)", fontStyle: "italic" }}>No holdings.</p>;
 
   return (
-    <table className="w-full text-sm">
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
       <thead>
-        <tr className="border-b border-gray-200">
-          <th className="text-left py-2 pr-3 text-xs font-medium text-gray-500">Ticker</th>
-          <th className="text-left py-2 pr-3 text-xs font-medium text-gray-500">Class</th>
-          <th className="text-left py-2 pr-3 text-xs font-medium text-gray-500">Weight</th>
-          <th className="text-left py-2 text-xs font-medium text-gray-500">Score</th>
+        <tr style={{ borderBottom: "1px solid var(--border)" }}>
+          {["Ticker", "Class", "Weight", "Score"].map((h) => (
+            <th key={h} style={{
+              textAlign: "left", padding: "8px 12px",
+              fontSize: 11, fontWeight: 600, letterSpacing: "0.04em",
+              textTransform: "uppercase", color: "var(--muted-2)",
+              borderBottom: "1px solid var(--border)",
+            }}>
+              {h}
+            </th>
+          ))}
         </tr>
       </thead>
       <tbody>
         {holdings.map((h) => (
-          <tr key={h.ticker} className="border-b border-gray-100">
-            <td className="py-2 pr-3 font-mono font-semibold text-gray-900">{h.ticker}</td>
-            <td className="py-2 pr-3">
-              <span
-                className={`text-xs rounded border px-1.5 py-0.5 font-medium ${
-                  h.asset_class === "stock"
-                    ? "bg-blue-50 text-blue-600 border-blue-200"
-                    : "bg-purple-50 text-purple-600 border-purple-200"
-                }`}
-              >
-                {h.asset_class.toUpperCase()}
-              </span>
+          <tr
+            key={h.ticker}
+            style={{ borderBottom: "1px solid var(--border-faint)", transition: "background 0.1s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--elevated)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <td style={{ padding: "8px 12px", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text)" }}>
+              {h.ticker}
             </td>
-            <td className="py-2 pr-3">
+            <td style={{ padding: "8px 12px" }}>
+              <AssetClassChip cls={h.asset_class} />
+            </td>
+            <td style={{ padding: "8px 12px" }}>
               <WeightBar weight={h.weight} />
             </td>
-            <td className="py-2">
+            <td style={{ padding: "8px 12px" }}>
               <ScorePill value={h.score} />
             </td>
           </tr>
@@ -107,45 +135,45 @@ function HoldingsTable({ holdings }: { holdings: BuilderHolding[] }) {
   );
 }
 
-function ConstructionLogPanel({
-  log,
-}: {
-  log: Record<string, unknown>[];
-}) {
+function ConstructionLogPanel({ log }: { log: Record<string, unknown>[] }) {
   const [open, setOpen] = useState(false);
   if (log.length === 0) return null;
 
   return (
-    <div className="mt-4">
+    <div style={{ marginTop: 16 }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1"
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 5,
+          fontSize: 12, color: "var(--muted)", fontFamily: "var(--font-ui)",
+          padding: 0,
+        }}
       >
-        <span>{open ? "▲" : "▼"}</span>
+        <span style={{ fontSize: 10 }}>{open ? "▲" : "▼"}</span>
         Construction log ({log.length} steps)
       </button>
       {open && (
-        <div className="mt-2 border border-gray-200 rounded overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 border-b border-gray-200">
+        <div style={{
+          marginTop: 8, border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)", overflow: "hidden",
+        }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead style={{ background: "var(--elevated)", borderBottom: "1px solid var(--border)" }}>
               <tr>
-                <th className="text-left px-3 py-2 font-medium text-gray-500">Step</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-500">Details</th>
+                <th style={{ textAlign: "left", padding: "7px 12px", fontWeight: 600, color: "var(--muted-2)" }}>Step</th>
+                <th style={{ textAlign: "left", padding: "7px 12px", fontWeight: 600, color: "var(--muted-2)" }}>Details</th>
               </tr>
             </thead>
             <tbody>
               {log.map((entry, i) => {
                 const step = String(entry.step ?? "");
-                const rest = Object.fromEntries(
-                  Object.entries(entry).filter(([k]) => k !== "step"),
-                );
+                const rest = Object.fromEntries(Object.entries(entry).filter(([k]) => k !== "step"));
                 return (
-                  <tr key={i} className="border-b border-gray-100">
-                    <td className="px-3 py-1.5 font-mono text-gray-700">{step}</td>
-                    <td className="px-3 py-1.5 text-gray-500 font-mono text-xs break-all">
-                      {Object.entries(rest)
-                        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-                        .join("  ·  ")}
+                  <tr key={i} style={{ borderBottom: "1px solid var(--border-faint)" }}>
+                    <td style={{ padding: "5px 12px", fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{step}</td>
+                    <td style={{ padding: "5px 12px", color: "var(--muted)", fontFamily: "var(--font-mono)", wordBreak: "break-all" }}>
+                      {Object.entries(rest).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join("  ·  ")}
                     </td>
                   </tr>
                 );
@@ -163,32 +191,39 @@ function SkipLogPanel({ skipLog }: { skipLog: SkipLogEntry[] }) {
   if (skipLog.length === 0) return null;
 
   return (
-    <div className="mt-4">
+    <div style={{ marginTop: 12 }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 5,
+          fontSize: 12, color: "var(--warn)", fontFamily: "var(--font-ui)", padding: 0,
+        }}
       >
-        <span>{open ? "▲" : "▼"}</span>
+        <span style={{ fontSize: 10 }}>{open ? "▲" : "▼"}</span>
         Correlation skips ({skipLog.length})
       </button>
       {open && (
-        <div className="mt-2 border border-amber-200 rounded overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-amber-50 border-b border-amber-200">
+        <div style={{
+          marginTop: 8,
+          border: "1px solid rgba(245,158,11,0.3)",
+          borderRadius: "var(--radius-sm)", overflow: "hidden",
+        }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead style={{ background: "var(--warn-soft)", borderBottom: "1px solid rgba(245,158,11,0.3)" }}>
               <tr>
-                <th className="text-left px-3 py-2 font-medium text-amber-700">Skipped</th>
-                <th className="text-left px-3 py-2 font-medium text-amber-700">Conflicts with</th>
-                <th className="text-left px-3 py-2 font-medium text-amber-700">Corr.</th>
-                <th className="text-left px-3 py-2 font-medium text-amber-700">Threshold</th>
+                {["Skipped", "Conflicts with", "Corr.", "Threshold"].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: "7px 12px", fontWeight: 600, color: "var(--warn)" }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {skipLog.map((s, i) => (
-                <tr key={i} className="border-b border-amber-100">
-                  <td className="px-3 py-1.5 font-mono">{s.skipped_ticker}</td>
-                  <td className="px-3 py-1.5 font-mono">{s.conflicts_with_ticker}</td>
-                  <td className="px-3 py-1.5 font-mono">{s.actual_correlation.toFixed(3)}</td>
-                  <td className="px-3 py-1.5 font-mono">{s.threshold.toFixed(3)}</td>
+                <tr key={i} style={{ borderBottom: "1px solid rgba(245,158,11,0.15)" }}>
+                  <td style={{ padding: "5px 12px", fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{s.skipped_ticker}</td>
+                  <td style={{ padding: "5px 12px", fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{s.conflicts_with_ticker}</td>
+                  <td style={{ padding: "5px 12px", fontFamily: "var(--font-mono)", color: "var(--muted)" }}>{s.actual_correlation.toFixed(3)}</td>
+                  <td style={{ padding: "5px 12px", fontFamily: "var(--font-mono)", color: "var(--muted)" }}>{s.threshold.toFixed(3)}</td>
                 </tr>
               ))}
             </tbody>
@@ -204,13 +239,14 @@ function ConstraintWarnings({ variant }: { variant: PortfolioVariant }) {
     ...variant.warnings,
     ...((variant.constraints_summary.details as string[] | undefined) ?? []),
   ].filter(Boolean);
-
   if (issues.length === 0) return null;
-
   return (
-    <div className="mt-3 rounded bg-amber-50 border border-amber-200 px-3 py-2">
+    <div style={{
+      marginTop: 12, padding: "10px 14px", borderRadius: "var(--radius-sm)",
+      background: "var(--warn-soft)", border: "1px solid rgba(245,158,11,0.3)",
+    }}>
       {issues.map((msg, i) => (
-        <p key={i} className="text-xs text-amber-700">
+        <p key={i} style={{ margin: i > 0 ? "4px 0 0" : 0, fontSize: 12, color: "var(--warn)" }}>
           ⚠ {msg}
         </p>
       ))}
@@ -220,32 +256,26 @@ function ConstraintWarnings({ variant }: { variant: PortfolioVariant }) {
 
 function VariantCard({ variant }: { variant: PortfolioVariant }) {
   const cs = variant.constraints_summary as Record<string, unknown>;
-
   return (
-    <div className="flex flex-col gap-3">
-      {/* Generation metadata */}
-      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-        <span>
-          Method:{" "}
-          <span className="font-mono text-gray-700">{variant.generation_method}</span>
-        </span>
-        <span>
-          Positions:{" "}
-          <span className="font-mono text-gray-700">{String(cs.actual_positions ?? "—")}</span>
-        </span>
-        {Number(variant.correlation_relaxations_applied) > 0 && (
-          <span className="text-amber-600">
-            Correlation relaxations: {variant.correlation_relaxations_applied}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+        {[
+          { label: "Method", value: variant.generation_method },
+          { label: "Positions", value: String(cs.actual_positions ?? "—") },
+          ...(Number(variant.correlation_relaxations_applied) > 0
+            ? [{ label: "Relaxations", value: String(variant.correlation_relaxations_applied), warn: true }]
+            : []),
+        ].map(({ label, value, warn }) => (
+          <span key={label} style={{ fontSize: 12, color: "var(--muted)" }}>
+            {label}:{" "}
+            <span style={{ fontFamily: "var(--font-mono)", color: warn ? "var(--warn)" : "var(--text-2)" }}>
+              {value}
+            </span>
           </span>
-        )}
+        ))}
       </div>
-
       <ConstraintWarnings variant={variant} />
-
-      {/* Holdings */}
       <HoldingsTable holdings={variant.holdings} />
-
-      {/* Construction log + skip log */}
       <ConstructionLogPanel log={variant.construction_log} />
       <SkipLogPanel skipLog={variant.skip_log} />
     </div>
@@ -253,16 +283,11 @@ function VariantCard({ variant }: { variant: PortfolioVariant }) {
 }
 
 // ---------------------------------------------------------------------------
-// Save panel — inline per-variant save form
+// Save panel
 // ---------------------------------------------------------------------------
 
-function SavePanel({
-  variant,
-  riskLevel,
-  onSaved,
-}: {
-  variant: PortfolioVariant;
-  riskLevel: number | null;
+function SavePanel({ variant, riskLevel, onSaved }: {
+  variant: PortfolioVariant; riskLevel: number | null;
   onSaved: (id: number, name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -274,7 +299,6 @@ function SavePanel({
   function openPanel() {
     setOpen(true);
     setError(null);
-    // Suggest a default name: variant label + today's date
     const today = new Date().toISOString().slice(0, 10);
     const label = VARIANT_LABELS[variant.variant_type] ?? variant.variant_type;
     setName(`${label} — ${today}`);
@@ -283,20 +307,11 @@ function SavePanel({
 
   async function handleSave() {
     const trimmed = name.trim();
-    if (!trimmed) {
-      setError("Please enter a name for this candidate portfolio.");
-      return;
-    }
+    if (!trimmed) { setError("Please enter a name for this candidate portfolio."); return; }
     setSaving(true);
     setError(null);
-
-    // Extract fundamentals_snapshot_date from first holding's score_breakdown
-    const firstBreakdown = variant.holdings[0]?.score_breakdown as
-      | Record<string, unknown>
-      | null;
-    const fundamentalsDate =
-      (firstBreakdown?.fundamentals_snapshot_date as string | null) ?? null;
-
+    const firstBreakdown = variant.holdings[0]?.score_breakdown as Record<string, unknown> | null;
+    const fundamentalsDate = (firstBreakdown?.fundamentals_snapshot_date as string | null) ?? null;
     try {
       const saved = await savePortfolio({
         name: trimmed,
@@ -308,24 +323,15 @@ function SavePanel({
         prices_freshness_at_save: "cached",
         fundamentals_snapshot_date: fundamentalsDate,
         construction_log: variant.construction_log,
-        portfolio_metadata: {
-          warnings: variant.warnings,
-          constraints_summary: variant.constraints_summary,
-        },
+        portfolio_metadata: { warnings: variant.warnings, constraints_summary: variant.constraints_summary },
         holdings: variant.holdings.map((h) => ({
-          ticker: h.ticker,
-          asset_class: h.asset_class,
-          weight: h.weight,
-          score: h.score,
-          score_breakdown: h.score_breakdown as Record<string, unknown> | null,
+          ticker: h.ticker, asset_class: h.asset_class, weight: h.weight,
+          score: h.score, score_breakdown: h.score_breakdown as Record<string, unknown> | null,
         })),
         skip_log: variant.skip_log.map((s) => ({
-          skipped_ticker: s.skipped_ticker,
-          skipped_asset_class: s.skipped_asset_class,
-          reason: s.reason,
-          threshold: s.threshold,
-          actual_correlation: s.actual_correlation,
-          conflicts_with_ticker: s.conflicts_with_ticker,
+          skipped_ticker: s.skipped_ticker, skipped_asset_class: s.skipped_asset_class,
+          reason: s.reason, threshold: s.threshold,
+          actual_correlation: s.actual_correlation, conflicts_with_ticker: s.conflicts_with_ticker,
         })),
       });
       setOpen(false);
@@ -341,7 +347,22 @@ function SavePanel({
     return (
       <button
         onClick={openPanel}
-        className="mt-4 text-xs font-medium text-brand-600 hover:text-brand-800 border border-brand-300 hover:border-brand-500 rounded-lg px-4 py-2 transition-colors"
+        style={{
+          marginTop: 16, display: "inline-flex", alignItems: "center",
+          fontSize: 12, fontWeight: 600, fontFamily: "var(--font-ui)",
+          color: "var(--indigo)",
+          background: "var(--elevated)", border: "1px solid var(--border-strong)",
+          borderRadius: "var(--radius-sm)", padding: "7px 14px",
+          cursor: "pointer", transition: "background 0.12s, border-color 0.12s",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--indigo)";
+          (e.currentTarget as HTMLButtonElement).style.background = "var(--indigo-soft)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
+          (e.currentTarget as HTMLButtonElement).style.background = "var(--elevated)";
+        }}
       >
         Save this candidate portfolio…
       </button>
@@ -349,8 +370,13 @@ function SavePanel({
   }
 
   return (
-    <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50 p-4">
-      <p className="text-xs font-medium text-brand-800 mb-2">
+    <div style={{
+      marginTop: 16, padding: 16,
+      background: "var(--elevated)", border: "1px solid var(--indigo)",
+      borderRadius: "var(--radius)",
+      boxShadow: "0 0 0 1px var(--indigo-soft)",
+    }}>
+      <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
         Save candidate portfolio
       </p>
       <input
@@ -360,25 +386,44 @@ function SavePanel({
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); if (e.key === "Escape") setOpen(false); }}
         placeholder="Name this candidate portfolio…"
-        className="w-full border border-brand-200 rounded px-3 py-1.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
         disabled={saving}
         maxLength={200}
+        style={{
+          width: "100%",
+          background: "var(--bg)", border: "1px solid var(--border-strong)",
+          borderRadius: "var(--radius-sm)", padding: "8px 12px",
+          color: "var(--text)", fontFamily: "var(--font-ui)", fontSize: 13,
+          outline: "none", marginBottom: 8,
+        }}
+        onFocus={(e) => { e.target.style.borderColor = "var(--indigo)"; e.target.style.boxShadow = "0 0 0 3px var(--indigo-soft)"; }}
+        onBlur={(e) => { e.target.style.borderColor = "var(--border-strong)"; e.target.style.boxShadow = "none"; }}
       />
-      {error && (
-        <p className="text-xs text-red-600 mb-2">{error}</p>
-      )}
-      <div className="flex gap-2">
+      {error && <p style={{ fontSize: 12, color: "var(--neg)", margin: "0 0 8px" }}>{error}</p>}
+      <div style={{ display: "flex", gap: 8 }}>
         <button
           onClick={() => void handleSave()}
           disabled={saving}
-          className="px-4 py-1.5 text-xs font-medium rounded-lg bg-brand-500 hover:bg-brand-600 text-white disabled:opacity-60 transition-colors"
+          style={{
+            padding: "7px 16px", fontSize: 12, fontWeight: 600,
+            borderRadius: "var(--radius-sm)", border: "1px solid var(--indigo)",
+            background: "var(--indigo)", color: "#fff",
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.6 : 1,
+            fontFamily: "var(--font-ui)", transition: "background 0.12s",
+          }}
         >
           {saving ? "Saving…" : "Save"}
         </button>
         <button
           onClick={() => setOpen(false)}
           disabled={saving}
-          className="px-4 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+          style={{
+            padding: "7px 16px", fontSize: 12, fontWeight: 600,
+            borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)",
+            background: "var(--elevated-2)", color: "var(--muted)",
+            cursor: saving ? "not-allowed" : "pointer",
+            fontFamily: "var(--font-ui)",
+          }}
         >
           Cancel
         </button>
@@ -397,18 +442,13 @@ export function Builder() {
   const [riskLevel, setRiskLevel] = useState<number | null>(null);
   const [riskName, setRiskName] = useState<string>("");
   const [profileLoaded, setProfileLoaded] = useState(false);
-
   const [source, setSource] = useState<Source>("full_universe");
   const [maxPositions, setMaxPositions] = useState(15);
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<BuilderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("core");
-
-  // save state: variant_type → { savedId, savedName }
-  const [savedVariants, setSavedVariants] = useState<
-    Record<string, { id: number; name: string }>
-  >({});
+  const [savedVariants, setSavedVariants] = useState<Record<string, { id: number; name: string }>>({});
 
   function handleVariantSaved(variantType: string, id: number, name: string) {
     setSavedVariants((prev) => ({ ...prev, [variantType]: { id, name } }));
@@ -418,11 +458,7 @@ export function Builder() {
     getProfile().then((p) => {
       if (p) {
         setRiskLevel(p.risk_level);
-        setRiskName(
-          p.risk_level != null
-            ? (RISK_NAMES[p.risk_level] ?? `Level ${p.risk_level}`)
-            : "",
-        );
+        setRiskName(p.risk_level != null ? (RISK_NAMES[p.risk_level] ?? `Level ${p.risk_level}`) : "");
       }
       setProfileLoaded(true);
     });
@@ -434,10 +470,7 @@ export function Builder() {
     setResult(null);
     setSavedVariants({});
     try {
-      const resp = await generatePortfolios({
-        source_universe: source,
-        max_positions: maxPositions,
-      });
+      const resp = await generatePortfolios({ source_universe: source, max_positions: maxPositions });
       setResult(resp);
       setActiveTab("core");
     } catch (e: unknown) {
@@ -449,83 +482,90 @@ export function Builder() {
 
   const activeVariant = result?.variants.find((v) => v.variant_type === activeTab) ?? null;
 
-  return (
-    <div className="p-6 max-w-4xl">
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">Builder</h1>
-      <p className="text-xs text-gray-400 mb-6">
-        Generate candidate portfolios from the scored universe — not investment advice.
-      </p>
+  const CARD_STYLE: React.CSSProperties = {
+    background: "var(--surface)", border: "1px solid var(--border)",
+    borderRadius: "var(--radius-lg)", padding: 20,
+  };
 
-      {/* Controls panel */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 mb-6">
-        {/* Risk level display */}
-        <div className="mb-4">
-          <span className="text-xs text-gray-500">Risk level</span>
+  return (
+    <div style={{ padding: "24px 24px 32px", maxWidth: 800 }}>
+      {/* Controls card */}
+      <div style={{ ...CARD_STYLE, marginBottom: 20 }}>
+        {/* Card header */}
+        <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid var(--border)" }}>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 650, color: "var(--text)" }}>
+            Generation Parameters
+          </p>
+        </div>
+
+        {/* Risk level row */}
+        <div style={{ marginBottom: 18 }}>
+          <p style={{ margin: "0 0 4px", fontSize: 11.5, color: "var(--muted-2)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Risk Level
+          </p>
           {profileLoaded ? (
             riskLevel != null ? (
-              <p className="text-sm font-semibold text-gray-900 mt-0.5">
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
                 {riskName}{" "}
-                <span className="text-gray-400 font-normal">(Level {riskLevel})</span>
+                <span style={{ color: "var(--muted-2)", fontWeight: 400, fontSize: 12 }}>(Level {riskLevel})</span>
               </p>
             ) : (
-              <p className="text-sm text-amber-600 mt-0.5">
+              <p style={{ margin: 0, fontSize: 13, color: "var(--warn)" }}>
                 No risk level set —{" "}
-                <a href="/settings" className="underline">
+                <a href="/settings" style={{ color: "var(--indigo)", textDecoration: "underline" }}>
                   go to Settings
                 </a>
               </p>
             )
           ) : (
-            <p className="text-sm text-gray-400 mt-0.5">Loading…</p>
+            <LoadingBlock rows={1} padded={false} />
           )}
         </div>
 
-        {/* Source toggle */}
-        <div className="mb-4">
-          <span className="text-xs text-gray-500 block mb-2">Source</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSource("full_universe")}
-              className={[
-                "px-4 py-2 text-sm rounded-lg border transition-colors",
-                source === "full_universe"
-                  ? "bg-brand-500 text-white border-brand-500"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-brand-400",
-              ].join(" ")}
-            >
-              Full Universe
-            </button>
-            <button
-              onClick={() => setSource("watchlist")}
-              className={[
-                "px-4 py-2 text-sm rounded-lg border transition-colors",
-                source === "watchlist"
-                  ? "bg-brand-500 text-white border-brand-500"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-brand-400",
-              ].join(" ")}
-            >
-              Watchlist
-            </button>
+        {/* Source selector */}
+        <div style={{ marginBottom: 18 }}>
+          <p style={{ margin: "0 0 10px", fontSize: 11.5, color: "var(--muted-2)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Source Universe
+          </p>
+          <div style={{
+            display: "flex", background: "var(--bg)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)", padding: 3, gap: 3, width: "fit-content",
+          }}>
+            {(["full_universe", "watchlist"] as Source[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSource(s)}
+                style={{
+                  flex: 1, background: source === s ? "var(--elevated-2)" : "none",
+                  border: "none", color: source === s ? "var(--text)" : "var(--muted)",
+                  padding: "6px 16px", borderRadius: 5, cursor: "pointer",
+                  fontFamily: "var(--font-ui)", fontSize: 12.5, fontWeight: 600,
+                  boxShadow: source === s ? "0 1px 2px rgba(0,0,0,0.3)" : "none",
+                  transition: "all 0.12s", whiteSpace: "nowrap",
+                }}
+              >
+                {s === "full_universe" ? "Full Universe" : "Watchlist"}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Max positions */}
-        <div className="mb-5">
-          <label className="text-xs text-gray-500 block mb-1">
-            Target positions: {maxPositions}
-          </label>
-          <input
-            type="range"
-            min={8}
-            max={20}
-            step={1}
-            value={maxPositions}
-            onChange={(e) => setMaxPositions(Number(e.target.value))}
-            className="w-48 accent-brand-500"
-          />
-          <div className="flex justify-between text-xs text-gray-400 w-48 mt-0.5">
-            <span>8</span>
-            <span>20</span>
+        {/* Max positions slider */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--muted-2)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Target positions:{" "}
+            <span style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>{maxPositions}</span>
+          </p>
+          <div style={{ width: 200 }}>
+            <input
+              type="range" min={8} max={20} step={1}
+              value={maxPositions}
+              onChange={(e) => setMaxPositions(Number(e.target.value))}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--muted-2)", fontFamily: "var(--font-mono)" }}>8</span>
+              <span style={{ fontSize: 11, color: "var(--muted-2)", fontFamily: "var(--font-mono)" }}>20</span>
+            </div>
           </div>
         </div>
 
@@ -533,7 +573,24 @@ export function Builder() {
         <button
           onClick={handleGenerate}
           disabled={generating || !profileLoaded}
-          className="px-6 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm transition-colors disabled:opacity-60"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+            padding: "10px 22px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--indigo)",
+            background: "var(--indigo)", color: "#fff",
+            fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 600,
+            cursor: (generating || !profileLoaded) ? "not-allowed" : "pointer",
+            opacity: (generating || !profileLoaded) ? 0.6 : 1,
+            transition: "background 0.12s, opacity 0.15s",
+            boxShadow: "0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 14px -4px var(--indigo-glow)",
+          }}
+          onMouseEnter={(e) => {
+            if (!generating && profileLoaded) (e.currentTarget as HTMLButtonElement).style.background = "var(--indigo-dim)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--indigo)";
+          }}
         >
           {generating ? "Generating…" : "Generate Candidate Portfolios"}
         </button>
@@ -541,8 +598,72 @@ export function Builder() {
 
       {/* Error state */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-6">
-          <p className="text-sm text-red-700">{error}</p>
+        <div style={{
+          marginBottom: 20, padding: "14px 16px",
+          background: "var(--surface)", border: "1px solid rgba(239,68,68,0.22)",
+          borderRadius: "var(--radius)",
+        }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: "var(--neg-soft)", border: "1px solid rgba(239,68,68,0.28)",
+              display: "grid", placeItems: "center", flexShrink: 0,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <circle cx="12" cy="16" r="0.5" fill="#EF4444" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 650, color: "var(--text)" }}>
+                Generation failed
+              </p>
+              <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-generation info card */}
+      {!result && !error && !generating && (
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)", padding: "18px 20px", marginBottom: 20,
+        }}>
+          <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--muted-2)" }}>
+            Three variants to compare
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            {[
+              { name: "Core", desc: "Equal-weight blend across all selected candidates." },
+              { name: "Growth Tilt", desc: "Overweights higher-scored positions relative to core." },
+              { name: "Defensive Tilt", desc: "Underweights higher-scored positions for a flatter profile." },
+            ].map(({ name, desc }) => (
+              <div key={name} style={{
+                background: "var(--elevated)", border: "1px solid var(--border-faint)",
+                borderRadius: "var(--radius-sm)", padding: "12px 14px",
+              }}>
+                <p style={{ margin: "0 0 5px", fontSize: 12.5, fontWeight: 650, color: "var(--text)" }}>{name}</p>
+                <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted-2)", lineHeight: 1.5 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: "12px 0 0", fontSize: 11.5, color: "var(--muted-2)", lineHeight: 1.5 }}>
+            All variants use the same candidate pool and risk profile. Output is educational analysis only — not investment advice or a recommendation.
+          </p>
+        </div>
+      )}
+
+      {/* Generating skeleton */}
+      {generating && (
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)", padding: "20px",
+        }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "var(--muted-2)" }}>Building candidate portfolios…</p>
+          <LoadingBlock rows={5} padded={false} />
         </div>
       )}
 
@@ -550,38 +671,39 @@ export function Builder() {
       {result && (
         <div>
           {/* Summary row */}
-          <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
-            <span>
-              Risk level:{" "}
-              <span className="font-medium text-gray-800">
-                {result.risk_level_name} ({result.risk_level})
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 16 }}>
+            {[
+              { label: "Risk level", value: `${result.risk_level_name} (${result.risk_level})` },
+              { label: "Assets used", value: String(result.asset_count_used) },
+              { label: "Source", value: result.source_universe },
+            ].map(({ label, value }) => (
+              <span key={label} style={{ fontSize: 12, color: "var(--muted)" }}>
+                {label}:{" "}
+                <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-2)", fontWeight: 600 }}>
+                  {value}
+                </span>
               </span>
-            </span>
-            <span>
-              Assets used:{" "}
-              <span className="font-medium text-gray-800">{result.asset_count_used}</span>
-            </span>
-            <span>
-              Source:{" "}
-              <span className="font-mono text-gray-800">{result.source_universe}</span>
-            </span>
+            ))}
           </div>
 
           {/* Variant tabs */}
-          <div className="flex gap-1 border-b border-gray-200 mb-4">
+          <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--border)", marginBottom: 0 }}>
             {result.variants.map((v) => (
               <button
                 key={v.variant_type}
                 onClick={() => setActiveTab(v.variant_type)}
-                className={[
-                  "px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px",
-                  activeTab === v.variant_type
-                    ? "border-brand-500 text-brand-600"
-                    : "border-transparent text-gray-500 hover:text-gray-800",
-                ].join(" ")}
+                style={{
+                  padding: "8px 16px", fontSize: 13, fontWeight: 500,
+                  fontFamily: "var(--font-ui)", cursor: "pointer",
+                  background: "none", border: "none",
+                  borderBottom: "2px solid",
+                  borderBottomColor: activeTab === v.variant_type ? "var(--indigo)" : "transparent",
+                  color: activeTab === v.variant_type ? "var(--indigo)" : "var(--muted)",
+                  marginBottom: -1, transition: "color 0.12s, border-color 0.12s",
+                }}
               >
                 {VARIANT_LABELS[v.variant_type] ?? v.variant_type}
-                <span className="ml-1.5 text-xs text-gray-400">
+                <span style={{ marginLeft: 6, fontSize: 11, color: "var(--muted-2)" }}>
                   ({v.holdings.length})
                 </span>
               </button>
@@ -590,18 +712,22 @@ export function Builder() {
 
           {/* Active variant content */}
           {activeVariant && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <div style={{ ...CARD_STYLE, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: "none" }}>
               <VariantCard variant={activeVariant} />
 
-              {/* Save action */}
               {savedVariants[activeVariant.variant_type] ? (
-                <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 flex items-center gap-3">
-                  <span className="text-xs text-green-700 font-medium">
+                <div style={{
+                  marginTop: 16, padding: "10px 14px",
+                  background: "var(--pos-soft)", border: "1px solid rgba(16,185,129,0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}>
+                  <span style={{ fontSize: 12, color: "var(--pos)", fontWeight: 600 }}>
                     Saved as &ldquo;{savedVariants[activeVariant.variant_type].name}&rdquo;
                   </span>
                   <Link
                     to="/history"
-                    className="text-xs text-green-700 underline hover:text-green-900"
+                    style={{ fontSize: 12, color: "var(--pos)", textDecoration: "underline" }}
                   >
                     View in History →
                   </Link>
@@ -610,16 +736,13 @@ export function Builder() {
                 <SavePanel
                   variant={activeVariant}
                   riskLevel={riskLevel}
-                  onSaved={(id, name) =>
-                    handleVariantSaved(activeVariant.variant_type, id, name)
-                  }
+                  onSaved={(id, name) => handleVariantSaved(activeVariant.variant_type, id, name)}
                 />
               )}
             </div>
           )}
 
-          {/* Bottom disclaimer */}
-          <p className="mt-4 text-xs text-gray-400 leading-relaxed">
+          <p style={{ marginTop: 16, fontSize: 11.5, color: "var(--muted-2)", lineHeight: 1.5 }}>
             Candidate portfolios are generated from historical scoring data — not
             investment advice, recommendations, or signals. Past data does not indicate
             future results. Weights are for educational analysis only.

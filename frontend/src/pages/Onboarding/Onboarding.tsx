@@ -123,6 +123,9 @@ function computeSuggestedLevel(responses: Record<string, number>): number {
   return Math.max(1, Math.min(5, Math.round(avg) + 1));
 }
 
+// ---- Key label for option (A–E) -----------------------------------------
+const OPTION_KEYS = ["A", "B", "C", "D", "E"];
+
 export function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState<"quiz" | "reveal">("quiz");
@@ -162,133 +165,297 @@ export function Onboarding() {
     }
   }
 
+  const progress = ((currentQ) / QUESTIONS.length) * 100;
+
   if (step === "quiz") {
     const q = QUESTIONS[currentQ];
-    const progress = ((currentQ) / QUESTIONS.length) * 100;
 
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-          <div className="w-full max-w-xl">
-            {/* Progress */}
-            <div className="mb-8">
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
-                <span>Risk Profile</span>
-                <span>{currentQ + 1} of {QUESTIONS.length}</span>
-              </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand-500 transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+      <div
+        className="min-h-screen flex flex-col"
+        style={{ background: "var(--bg)", color: "var(--text)", position: "relative", overflow: "hidden" }}
+      >
+        {/* Radial gradient backdrop */}
+        <div style={{
+          position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)",
+          width: 900, height: 600,
+          background: "radial-gradient(ellipse, var(--indigo-soft), transparent 65%)",
+          pointerEvents: "none",
+        }} />
 
-            {/* Question */}
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+        {/* Top bar */}
+        <div
+          className="flex items-center gap-3 relative z-10"
+          style={{ padding: "16px 28px", borderBottom: "1px solid var(--border)" }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>
+            Build<span style={{ color: "var(--indigo)" }}>Tech</span>
+          </span>
+          <div style={{ marginLeft: 22 }}>
+            <span
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+                textTransform: "uppercase", color: "var(--indigo)",
+              }}
+            >
+              Risk Profile Setup
+            </span>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ height: 2, background: "var(--border)", position: "relative", zIndex: 10 }}>
+          <div style={{
+            height: "100%",
+            width: `${progress}%`,
+            background: "linear-gradient(90deg, var(--indigo), var(--cyan))",
+            transition: "width 0.4s cubic-bezier(.16,1,.3,1)",
+          }} />
+        </div>
+
+        {/* Body */}
+        <div
+          className="flex-1 flex flex-col items-center overflow-auto relative z-10"
+          style={{ padding: "56px 28px" }}
+        >
+          <div style={{ width: 560, maxWidth: "100%", animation: "wizIn 0.32s cubic-bezier(.16,1,.3,1)" }}>
+            {/* Question number */}
+            <p style={{
+              fontSize: 12, fontWeight: 600, letterSpacing: "0.08em",
+              textTransform: "uppercase", color: "var(--indigo)", marginBottom: 14,
+            }}>
+              Question {currentQ + 1} of {QUESTIONS.length}
+            </p>
+
+            {/* Question text */}
+            <h2 style={{
+              fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em",
+              margin: "0 0 28px", lineHeight: 1.15, color: "var(--text)",
+            }}>
               {q.text}
             </h2>
 
             {/* Options */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               {q.options.map((label, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleAnswer(idx)}
-                  className="text-left px-4 py-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:border-brand-500 hover:bg-brand-50 transition-colors"
+                  className="flex items-center gap-3.5 text-left"
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: "var(--radius)",
+                    border: "1px solid var(--border-strong)",
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 14.5,
+                    fontWeight: 500,
+                    transition: "border-color 0.12s, background 0.12s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#3a4150";
+                    (e.currentTarget as HTMLButtonElement).style.background = "var(--elevated)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
+                    (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
+                  }}
                 >
-                  {label}
+                  <span style={{
+                    width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                    background: "var(--elevated-2)",
+                    display: "grid", placeItems: "center",
+                    fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600,
+                    color: "var(--muted)",
+                  }}>
+                    {OPTION_KEYS[idx]}
+                  </span>
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
+
+            {/* Step dots */}
+            <div className="flex items-center justify-between mt-8">
+              <div className="flex gap-1.5">
+                {QUESTIONS.map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: 7, height: 7, borderRadius: "50%",
+                      background: i === currentQ
+                        ? "var(--indigo)"
+                        : i < currentQ
+                        ? "var(--muted-2)"
+                        : "var(--elevated-2)",
+                      transform: i === currentQ ? "scale(1.2)" : "scale(1)",
+                      transition: "all 0.15s",
+                    }}
+                  />
+                ))}
+              </div>
+              <span style={{ fontSize: 12, color: "var(--muted-2)" }}>
+                {QUESTIONS.length - currentQ - 1} remaining
+              </span>
+            </div>
           </div>
         </div>
+
         <DisclaimerFooter />
       </div>
     );
   }
 
-  // Reveal step
+  // ---- Reveal step -------------------------------------------------------
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-xl">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Your suggested risk level
-          </h2>
-          <p className="text-sm text-gray-500 mb-8">
-            Based on your answers. Adjust with the slider if needed.
-          </p>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--bg)", color: "var(--text)", position: "relative", overflow: "hidden" }}
+    >
+      <div style={{
+        position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)",
+        width: 900, height: 600,
+        background: "radial-gradient(ellipse, var(--indigo-soft), transparent 65%)",
+        pointerEvents: "none",
+      }} />
 
-          {/* Suggested badge */}
-          <div className="rounded-xl border border-brand-100 bg-brand-50 px-6 py-5 mb-8">
-            <div className="flex items-baseline gap-3 mb-1">
-              <span className="text-3xl font-bold text-brand-600">
-                {RISK_NAMES[suggestedLevel]}
-              </span>
-              <span className="text-sm text-gray-400">Level {suggestedLevel} of 5</span>
-            </div>
-            <p className="text-sm text-gray-600">{RISK_DESCRIPTIONS[suggestedLevel]}</p>
+      {/* Top bar */}
+      <div
+        className="flex items-center gap-3 relative z-10"
+        style={{ padding: "16px 28px", borderBottom: "1px solid var(--border)" }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>
+          Build<span style={{ color: "var(--indigo)" }}>Tech</span>
+        </span>
+        <span style={{
+          fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+          textTransform: "uppercase", color: "var(--pos)", marginLeft: 22,
+        }}>
+          ✓ Questionnaire complete
+        </span>
+      </div>
+      <div style={{ height: 2, background: "linear-gradient(90deg, var(--indigo), var(--cyan))" }} />
+
+      <div className="flex-1 flex flex-col items-center overflow-auto relative z-10" style={{ padding: "56px 28px" }}>
+        <div style={{ width: 560, maxWidth: "100%", animation: "wizIn 0.32s cubic-bezier(.16,1,.3,1)" }}>
+
+          {/* Reveal tag */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            fontSize: 12.5, fontWeight: 600, color: "var(--indigo)",
+            background: "var(--indigo-soft)", border: "1px solid rgba(99,102,241,0.28)",
+            padding: "6px 12px", borderRadius: 20, marginBottom: 22,
+          }}>
+            Risk profile determined
           </div>
 
-          {/* Override slider */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+          <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", margin: "0 0 6px", color: "var(--text)" }}>
+            Your suggested risk level
+          </h2>
+          <p style={{ fontSize: 13.5, color: "var(--muted)", margin: "0 0 28px" }}>
+            Based on your answers. Adjust with the slider below if needed.
+          </p>
+
+          {/* Suggested level hero card */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--indigo)",
+            borderRadius: "var(--radius-lg)", padding: "18px 20px",
+            boxShadow: "0 0 0 1px var(--indigo), 0 12px 32px -12px var(--indigo-glow)",
+            marginBottom: 28,
+          }}>
+            <div className="flex items-baseline gap-3 mb-1">
+              <span style={{ fontSize: 30, fontWeight: 700, color: "var(--indigo)", letterSpacing: "-0.03em" }}>
+                {RISK_NAMES[suggestedLevel]}
+              </span>
+              <span style={{ fontSize: 13, color: "var(--muted-2)" }}>Level {suggestedLevel} of 5</span>
+            </div>
+            <p style={{ margin: 0, fontSize: 13.5, color: "var(--muted)" }}>
+              {RISK_DESCRIPTIONS[suggestedLevel]}
+            </p>
+          </div>
+
+          {/* Override */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius)", padding: 18, marginBottom: 28,
+          }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 12 }}>
               Override: choose your risk level
             </label>
             <input
               type="range"
-              min={1}
-              max={5}
-              step={1}
+              min={1} max={5} step={1}
               value={chosenLevel}
               onChange={(e) => setChosenLevel(Number(e.target.value))}
-              className="w-full accent-brand-500"
             />
-            <div className="flex justify-between mt-1">
+            <div className="flex justify-between mt-2">
               {[1, 2, 3, 4, 5].map((lvl) => (
                 <button
                   key={lvl}
                   onClick={() => setChosenLevel(lvl)}
-                  className={[
-                    "text-xs transition-colors",
-                    chosenLevel === lvl
-                      ? "text-brand-600 font-semibold"
-                      : "text-gray-400",
-                  ].join(" ")}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    fontSize: 11.5, fontFamily: "var(--font-ui)",
+                    fontWeight: chosenLevel === lvl ? 600 : 400,
+                    color: chosenLevel === lvl ? "var(--indigo)" : "var(--muted-2)",
+                    padding: 0, transition: "color 0.12s",
+                  }}
                 >
                   {RISK_NAMES[lvl]}
                 </button>
               ))}
             </div>
+
             {chosenLevel !== suggestedLevel && (
-              <p className="mt-3 text-xs text-amber-600">
+              <p style={{ marginTop: 10, fontSize: 11.5, color: "var(--warn)" }}>
                 You have overridden the suggested level ({RISK_NAMES[suggestedLevel]}).
               </p>
             )}
           </div>
 
           {/* Selected level info */}
-          <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 mb-8 text-sm text-gray-600">
-            <p className="font-medium text-gray-800 mb-1">
+          <div style={{
+            background: "var(--elevated)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius)", padding: "14px 16px", marginBottom: 28,
+          }}>
+            <p style={{ margin: "0 0 3px", fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>
               {RISK_NAMES[chosenLevel]} — Level {chosenLevel}
             </p>
-            <p>{RISK_DESCRIPTIONS[chosenLevel]}</p>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+              {RISK_DESCRIPTIONS[chosenLevel]}
+            </p>
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 mb-4">{error}</p>
+            <p style={{ fontSize: 13, color: "var(--neg)", marginBottom: 16 }}>{error}</p>
           )}
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm transition-colors disabled:opacity-60"
+            style={{
+              width: "100%", padding: "13px",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--indigo)",
+              background: "var(--indigo)",
+              color: "#fff",
+              fontFamily: "var(--font-ui)", fontSize: 14, fontWeight: 600,
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.6 : 1,
+              transition: "background 0.12s, opacity 0.15s",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 14px -4px var(--indigo-glow)",
+            }}
+            onMouseEnter={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "var(--indigo-dim)"; }}
+            onMouseLeave={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "var(--indigo)"; }}
           >
-            {saving ? "Saving…" : "Save Profile"}
+            {saving ? "Saving…" : "Save Profile & Enter"}
           </button>
         </div>
       </div>
+
       <DisclaimerFooter />
     </div>
   );
